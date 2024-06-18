@@ -4,7 +4,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// User represents a user of the online store
 type User struct {
 	gorm.Model
 	Name     string  `json:"name"`
@@ -12,4 +11,13 @@ type User struct {
 	Password string  `json:"password"`
 	Orders   []Order `json:"orders" gorm:"foreignKey:UserID"`
 	Carts    []Cart  `json:"carts" gorm:"foreignKey:UserID"`
+}
+
+func (User) TableName() string {
+	return "public.User"
+}
+
+type LoginResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }

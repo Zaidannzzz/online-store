@@ -1,50 +1,53 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"online-store/config"
-
-	// "online-store/internal/auth"
-	// "online-store/internal/cart"
-	// "online-store/internal/category"
-	// "online-store/internal/order"
-	// "online-store/internal/product"
-	// "online-store/internal/user"
-	"online-store/pkg/db"
-	// "online-store/pkg/middleware"
-	// "online-store/pkg/cache"
+	"online-store/config/db"
+	controllers "online-store/httpserver/controller/auth"
+	"online-store/httpserver/repositories"
+	"online-store/httpserver/routers"
+	"online-store/httpserver/services"
+	"online-store/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load environment variables from .env file
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Fatalf("Failed to load .env file: %v", err)
 	}
 
-	config.LoadConfig()
-	db.InitDB()
-	// cache.InitRedis()
-	router := gin.Default()
+	gin.SetMode(gin.ReleaseMode)
 
-	// auth.RegisterRoutes(router)
-	// user.RegisterRoutes(router)
-	// category.RegisterRoutes(router)
-	// product.RegisterRoutes(router)
-	// cart.RegisterRoutes(router)
-	// order.RegisterRoutes(router)
+	app := gin.Default()
+	appRoute := app.Group("/api")
+	db, err := db.Connect()
+	if err != nil {
+		log.Fatal("Failed to connect to the database")
+	}
 
-	// router.Use(middleware.AuthMiddleware())
-
-	router.GET("/", func(c *gin.Context) {
+	app.GET("/", func(c *gin.Context) {
 		log.Println("Accessed / endpoint")
 		c.String(http.StatusOK, "Hello, World!")
 	})
 
-	if err := router.Run(":8080"); err != nil {
-		log.Fatal("Failed to start server: ", err)
+	authService := utils.NewAuthHelper(utils.Constants.JWT_SECRET_KEY)
+
+	userRepository := repositories.NewUserRepository(db)
+	userService := services.NewUserService(userRepository)
+	userController := controllers.NewUserController(userService, authService)
+
+	routers.UserRouter(appRoute, userController, authService)
+
+	err = app.Run(":8080")
+	if err != nil {
+		log.Fatal("Failed to start the server")
 	}
+	fmt.Println("Starting the server on port 8080")
+
 }
