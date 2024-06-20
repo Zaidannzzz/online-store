@@ -13,10 +13,6 @@ type User struct {
 	Carts    []Cart  `json:"carts" gorm:"foreignKey:UserID"`
 }
 
-func (User) TableName() string {
-	return "public.User"
-}
-
 type LoginResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`

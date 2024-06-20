@@ -7,6 +7,7 @@ import (
 // Cart represents a shopping cart
 type Cart struct {
 	gorm.Model
-	UserID uint       `json:"user_id"`
-	Items  []CartItem `json:"items" gorm:"foreignKey:CartID"`
+	UserID    uint       `json:"user_id"`
+	CartItems []CartItem `json:"items" gorm:"foreignKey:CartID"`
+	Total     float64    `json:"total"`
 }

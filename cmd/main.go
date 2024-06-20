@@ -5,11 +5,13 @@ import (
 	"log"
 	"net/http"
 	"online-store/config/db"
-	controllers "online-store/httpserver/controller/auth"
+	"online-store/httpserver/controller/cart"
+	"online-store/httpserver/controller/order"
+	"online-store/httpserver/controller/product"
+	"online-store/httpserver/middleware"
 	"online-store/httpserver/repositories"
 	"online-store/httpserver/routers"
 	"online-store/httpserver/services"
-	"online-store/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -25,7 +27,6 @@ func main() {
 	gin.SetMode(gin.ReleaseMode)
 
 	app := gin.Default()
-	appRoute := app.Group("/api")
 	db, err := db.Connect()
 	if err != nil {
 		log.Fatal("Failed to connect to the database")
@@ -36,13 +37,28 @@ func main() {
 		c.String(http.StatusOK, "Hello, World!")
 	})
 
-	authService := utils.NewAuthHelper(utils.Constants.JWT_SECRET_KEY)
+	// Repositories
+	cartRepo := repositories.NewCartRepository(db)
+	orderRepo := repositories.NewOrderRepository(db)
+	productRepo := repositories.NewProductRepository(db)
 
-	userRepository := repositories.NewUserRepository(db)
-	userService := services.NewUserService(userRepository)
-	userController := controllers.NewUserController(userService, authService)
+	// Services
+	cartService := services.NewCartService(cartRepo)
+	orderService := services.NewOrderService(cartRepo, orderRepo)
+	productService := services.NewProductService(productRepo)
 
-	routers.UserRouter(appRoute, userController, authService)
+	// Controllers
+	cartHandler := cart.NewCartHandler(cartService)
+	orderHandler := order.NewOrderHandler(orderService)
+	productHandler := product.NewProductHandler(productService)
+
+	// Middleware
+	app.Use(middleware.AuthMiddleware())
+
+	// Routes
+	routers.SetupCartRoutes(app, cartHandler)
+	routers.SetupOrderRoutes(app, orderHandler)
+	routers.SetupProductRoutes(app, productHandler)
 
 	err = app.Run(":8080")
 	if err != nil {
